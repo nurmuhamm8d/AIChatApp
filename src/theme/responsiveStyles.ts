@@ -1,9 +1,12 @@
-import { StyleSheet, Dimensions, Platform, StatusBar } from 'react-native';
-import { responsiveFontSize, scale, verticalScale, moderateScale, isTablet } from '../utils/responsive';
+import { Platform, StatusBar } from 'react-native';
+import {
+  responsiveFontSize,
+  scale,
+  verticalScale,
+  moderateScale,
+  isTablet,
+} from '../utils/responsive';
 
-const { width, height } = Dimensions.get('window');
-
-// Standard spacing scale (in dp)
 const spacing = {
   xxs: scale(2),
   xs: scale(4),
@@ -15,7 +18,6 @@ const spacing = {
   xxxl: scale(48),
 } as const;
 
-// Standard border radius scale (in dp)
 const borderRadius = {
   s: scale(4),
   m: scale(8),
@@ -25,7 +27,6 @@ const borderRadius = {
   round: scale(999),
 } as const;
 
-// Standard icon sizes (in dp)
 const iconSizes = {
   xs: scale(16),
   s: scale(20),
@@ -35,7 +36,6 @@ const iconSizes = {
   xxl: scale(48),
 } as const;
 
-// Standard font sizes (in sp)
 const fontSizes = {
   caption: responsiveFontSize(12),
   body: responsiveFontSize(14),
@@ -47,7 +47,6 @@ const fontSizes = {
   xxlHeader: responsiveFontSize(32),
 } as const;
 
-// Standard button sizes
 const buttonSizes = {
   small: {
     height: verticalScale(36),
@@ -66,7 +65,6 @@ const buttonSizes = {
   },
 } as const;
 
-// Standard input field sizes
 const inputSizes = {
   small: {
     height: verticalScale(40),
@@ -85,7 +83,6 @@ const inputSizes = {
   },
 } as const;
 
-// Standard card styles
 const cardStyles = {
   standard: {
     borderRadius: borderRadius.l,
@@ -107,27 +104,20 @@ const cardStyles = {
   },
 } as const;
 
-// Standard container styles
 const containerStyles = {
   screen: {
     flex: 1,
     paddingHorizontal: spacing.l,
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight ?? 0 : 0,
   },
-  content: {
-    flex: 1,
-    padding: spacing.l,
-  },
+  content: { flex: 1, padding: spacing.l },
   centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: spacing.xl,
   },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
+  row: { flexDirection: 'row', alignItems: 'center' },
   rowSpaceBetween: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -135,30 +125,12 @@ const containerStyles = {
   },
 } as const;
 
-// Standard text styles
 const textStyles = {
-  title: {
-    fontSize: fontSizes.title,
-    fontWeight: 'bold',
-    marginBottom: spacing.s,
-  },
-  subtitle: {
-    fontSize: fontSizes.subheader,
-    opacity: 0.8,
-    marginBottom: spacing.xs,
-  },
-  body: {
-    fontSize: fontSizes.body,
-    lineHeight: fontSizes.body * 1.5,
-  },
-  caption: {
-    fontSize: fontSizes.caption,
-    opacity: 0.7,
-  },
-  button: {
-    fontSize: fontSizes.body,
-    fontWeight: '600',
-  },
+  title: { fontSize: fontSizes.title, fontWeight: 'bold', marginBottom: spacing.s },
+  subtitle: { fontSize: fontSizes.subheader, opacity: 0.8, marginBottom: spacing.xs },
+  body: { fontSize: fontSizes.body, lineHeight: fontSizes.body * 1.5 },
+  caption: { fontSize: fontSizes.caption, opacity: 0.7 },
+  button: { fontSize: fontSizes.body, fontWeight: '600' },
 } as const;
 
 export const responsiveStyles = {

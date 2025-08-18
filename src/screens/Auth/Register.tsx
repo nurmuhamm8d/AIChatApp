@@ -1,325 +1,239 @@
 import React, { useState, useCallback } from 'react';
-import { 
-  View, 
-  StyleSheet, 
-  KeyboardAvoidingView, 
-  Platform, 
-  ScrollView, 
-  Image, 
-  Alert,
-  TouchableOpacity,
-  ActivityIndicator,
-  Dimensions,
+import {
+  View,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Image,
   Keyboard,
-  TouchableWithoutFeedback
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
-import { Text, TextInput, Button, useTheme, Surface } from 'react-native-paper';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { AuthStackParamList, RootStackParamList, MainTabParamList } from '../../navigation/types';
-import { useTranslation } from 'react-i18next';
+import {
+  Text,
+  TextInput,
+  Button,
+  Surface,
+  Banner,
+  useTheme,
+} from 'react-native-paper';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { AuthStackParamList } from '../../navigation/types';
 import { useAuth } from '../../contexts/AuthContext';
-import { validateEmail, validatePassword } from '../../utils/validation';
-import { authService } from '../../services/auth';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { scale, verticalScale, moderateScale, isTablet } from '../../utils/responsive';
-import { responsiveStyles } from '../../theme/responsiveStyles';
+import { i18n } from '../../i18n';
+import { scale, verticalScale, isTablet } from '../../utils/responsive';
 
-const { width, height } = Dimensions.get('window');
-const isLandscape = width > height;
+type Nav = NativeStackNavigationProp<AuthStackParamList, 'Register'>;
 
-type RegisterScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Auth'> & {
-  navigate: (screen: keyof RootStackParamList, params?: any) => void;
-};
+const logo = require('../../../assets/images/logo.png');
 
-const Register = () => {
+const Register: React.FC = () => {
+  const nav = useNavigation<Nav>();
+  const theme = useTheme();
+  const { signUp } = useAuth();
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [secure, setSecure] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [secureTextEntry, setSecureTextEntry] = useState(true);
-  
-  const theme = useTheme();
-  const navigation = useNavigation<RegisterScreenNavigationProp>();
-  const insets = useSafeAreaInsets();
-  const { signIn } = useAuth();
-  const { t, i18n } = useTranslation();
 
-  const handleRegister = async () => {
-    if (!name || !email || !password || !confirmPassword) {
-      setError(t('translation:allFieldsRequired'));
+  const [hint, setHint] = useState(
+    i18n.t('allFieldsRequired', 'All fields are required'),
+  );
+  const [banner, setBanner] = useState<{ visible: boolean; text: string }>({
+    visible: false,
+    text: '',
+  });
+
+  const showExistsError = () => {
+    const msg = i18n.t('userAlreadyExists', 'The user is already registered');
+    setHint(msg);
+    setBanner({ visible: true, text: msg });
+  };
+
+  const handleRegister = useCallback(async () => {
+    const tRequired = i18n.t('allFieldsRequired', 'All fields are required');
+    const tShort = i18n.t('passwordTooShort', 'Password must be at least 6 characters');
+    const tMismatch = i18n.t('passwordsDontMatch', 'Passwords do not match');
+
+    if (!name.trim() || !email.trim() || !password || !confirm) {
+      setHint(tRequired);
       return;
     }
-
-    if (password !== confirmPassword) {
-      setError(t('translation:passwordsDontMatch'));
-      return;
-    }
-
     if (password.length < 6) {
-      setError(t('translation:passwordTooShort'));
+      setHint(tShort);
+      return;
+    }
+    if (password !== confirm) {
+      setHint(tMismatch);
       return;
     }
 
     Keyboard.dismiss();
     setLoading(true);
-    setError('');
+    setBanner({ visible: false, text: '' });
 
     try {
-      const result = await authService.register(name, email, password);
-      if (result) {
-        // Auto-login after successful registration
-        await signIn(email, password);
-        navigation.navigate('Main', { screen: 'Chat' });
+      await signUp(name.trim(), email.trim(), password);
+    } catch (e: any) {
+      const msg = String(e?.message || '').toLowerCase();
+      if (msg.includes('already') || msg.includes('in use') || msg.includes('exists')) {
+        showExistsError();
       } else {
-        setError(t('translation:registrationError'));
+        setHint(i18n.t('registrationError', 'Registration failed. Please try again.'));
       }
-    } catch (err) {
-      console.error('Registration error:', err);
-      setError(t('translation:registrationError'));
     } finally {
       setLoading(false);
     }
-  };
-
-  const renderContent = useCallback(() => {
-    const translations = {
-      appName: t('translation:welcome'),
-      register: t('translation:register'),
-      createAnAccountToGetStarted: t('translation:createAnAccountToGetStarted'),
-      name: t('translation:name'),
-      email: t('translation:email'),
-      password: t('translation:password'),
-      confirmPassword: t('translation:confirmPassword'),
-      alreadyHaveAnAccount: t('translation:alreadyHaveAnAccount'),
-      login: t('translation:login')
-    };
-
-    return (
-      <>
-        <View style={styles.header}>
-          <Image
-            source={require('../../../assets/images/logo.png')}
-            style={styles.logo}
-            resizeMode="contain"
-            accessibilityLabel={translations.appName}
-          />
-          <Text variant="headlineMedium" style={styles.title}>
-            {translations.register}
-          </Text>
-          <Text variant="bodyMedium" style={styles.subtitle}>
-            {translations.createAnAccountToGetStarted}
-          </Text>
-        </View>
-
-        {error ? (
-          <Text style={[styles.error, { color: theme.colors.error }]}>
-            {error}
-          </Text>
-        ) : null}
-
-        <View style={styles.form}>
-          <TextInput
-            label={translations.name}
-            placeholder={translations.name}
-            value={name}
-            onChangeText={setName}
-            mode="outlined"
-            style={[styles.input, isTablet() && styles.inputTablet]}
-            disabled={loading}
-            left={<TextInput.Icon icon="account" />}
-          />
-
-          <TextInput
-            label={translations.email}
-            placeholder={translations.email}
-            value={email}
-            onChangeText={setEmail}
-            mode="outlined"
-            style={[styles.input, isTablet() && styles.inputTablet]}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            disabled={loading}
-            left={<TextInput.Icon icon="email" />}
-          />
-
-          <TextInput
-            label={translations.password}
-            placeholder={translations.password}
-            value={password}
-            onChangeText={setPassword}
-            mode="outlined"
-            style={[styles.input, isTablet() && styles.inputTablet]}
-            secureTextEntry={secureTextEntry}
-            disabled={loading}
-            left={<TextInput.Icon icon="lock" />}
-            right={
-              <TextInput.Icon
-                icon={secureTextEntry ? 'eye-off' : 'eye'}
-                onPress={() => setSecureTextEntry(!secureTextEntry)}
-              />
-            }
-          />
-
-          <TextInput
-            label={translations.confirmPassword}
-            placeholder={translations.confirmPassword}
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            mode="outlined"
-            style={[styles.input, isTablet() && styles.inputTablet]}
-            secureTextEntry={secureTextEntry}
-            disabled={loading}
-            left={<TextInput.Icon icon="lock-check" />}
-            right={
-              <TextInput.Icon
-                icon={secureTextEntry ? 'eye-off' : 'eye'}
-                onPress={() => setSecureTextEntry(!secureTextEntry)}
-              />
-            }
-          />
-
-          <Button
-            mode="contained"
-            onPress={handleRegister}
-            style={styles.button}
-            loading={loading}
-            disabled={loading}
-          >
-            {translations.register}
-          </Button>
-
-          <View style={styles.footer}>
-            <Text style={[styles.footerText, { color: theme.colors.onSurfaceVariant }]}>
-              {translations.alreadyHaveAnAccount}{' '}
-            </Text>
-            <Button
-              mode="text"
-              onPress={() => navigation.navigate('Login')}
-              compact
-              disabled={loading}
-              labelStyle={styles.linkButton}
-            >
-              {translations.login}
-            </Button>
-          </View>
-        </View>
-      </>
-    );
-  }, [name, email, password, confirmPassword, loading, error, secureTextEntry, handleRegister, navigation]);
+  }, [name, email, password, confirm]);
 
   return (
     <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={{ flex: 1, backgroundColor: theme.colors.background }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? verticalScale(40) : 0}
     >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <ScrollView
-          contentContainerStyle={styles.scrollContainer}
-          keyboardShouldPersistTaps="handled"
-        >
-          <Surface style={[styles.container, isTablet() && styles.containerTablet]}>
-            {renderContent()}
-          </Surface>
-        </ScrollView>
-      </TouchableWithoutFeedback>
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Surface style={[styles.card, { backgroundColor: theme.colors.surface }]}>
+          <View style={styles.top}>
+            <Image source={logo} style={styles.logo} resizeMode="contain" />
+            <Text
+              variant="headlineMedium"
+              style={[styles.title, { color: theme.colors.onSurface }]}
+            >
+              {i18n.t('register', 'Register')}
+            </Text>
+            <Text
+              variant="bodyMedium"
+              style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]}
+            >
+              {hint}
+            </Text>
+          </View>
+
+          <Banner
+            visible={banner.visible}
+            icon="alert-circle-outline"
+            actions={[
+              { label: '✕', onPress: () => setBanner({ visible: false, text: '' }) },
+            ]}
+            style={styles.banner}
+          >
+            {banner.text}
+          </Banner>
+
+          <View style={styles.form}>
+            <TextInput
+              mode="outlined"
+              label={i18n.t('name', 'Name')}
+              value={name}
+              onChangeText={setName}
+              left={<TextInput.Icon icon="account" />}
+              style={[styles.input, isTablet() && styles.inputTablet]}
+            />
+
+            <TextInput
+              mode="outlined"
+              label={i18n.t('email', 'Email')}
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              left={<TextInput.Icon icon="email" />}
+              style={[styles.input, isTablet() && styles.inputTablet]}
+            />
+
+            <TextInput
+              mode="outlined"
+              label={i18n.t('password', 'Password')}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={secure}
+              left={<TextInput.Icon icon="lock" />}
+              right={
+                <TextInput.Icon
+                  icon={secure ? 'eye-off' : 'eye'}
+                  onPress={() => setSecure(s => !s)}
+                />
+              }
+              style={[styles.input, isTablet() && styles.inputTablet]}
+            />
+
+            <TextInput
+              mode="outlined"
+              label={i18n.t('confirmPassword', 'Confirm Password')}
+              value={confirm}
+              onChangeText={setConfirm}
+              secureTextEntry={secure}
+              left={<TextInput.Icon icon="lock-check" />}
+              right={
+                <TextInput.Icon
+                  icon={secure ? 'eye-off' : 'eye'}
+                  onPress={() => setSecure(s => !s)}
+                />
+              }
+              style={[styles.input, isTablet() && styles.inputTablet]}
+            />
+
+            <Button
+              mode="contained"
+              onPress={handleRegister}
+              loading={loading}
+              disabled={loading}
+              style={styles.button}
+              contentStyle={styles.buttonContent}
+              labelStyle={styles.buttonLabel}
+            >
+              {i18n.t('register', 'Register')}
+            </Button>
+
+            <View style={styles.footerRow}>
+              <Text style={[styles.footerText, { color: theme.colors.onSurfaceVariant }]}>
+                {i18n.t('dontHaveAccount', "Don't have an account?")}
+              </Text>
+              <Button
+                compact
+                mode="text"
+                onPress={() => nav.navigate('Login')}
+              >
+                {i18n.t('login', 'Login')}
+              </Button>
+            </View>
+          </View>
+        </Surface>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
-  keyboardAvoidingView: {
-    flex: 1,
-  },
-  scrollContainer: {
-    flexGrow: 1,
-    justifyContent: 'center',
-  },
-  container: {
-    flex: 1,
-    padding: scale(24),
-    justifyContent: 'center',
-    maxWidth: 500,
+  scroll: { flexGrow: 1, justifyContent: 'center', padding: scale(16) },
+  card: {
     width: '100%',
-    alignSelf: 'center',
-  },
-  containerTablet: {
-    padding: scale(32),
-    borderRadius: scale(8),
-    elevation: 2,
-    marginVertical: verticalScale(20),
     maxWidth: 600,
+    alignSelf: 'center',
+    padding: scale(20),
+    borderRadius: scale(12),
+    elevation: 2,
   },
-  header: {
-    marginBottom: verticalScale(24),
-    alignItems: 'center',
-  },
-  logo: {
-    width: 100,
-    height: 100,
-    marginBottom: 15,
-  },
-  title: {
-    fontWeight: 'bold',
-    marginBottom: verticalScale(8),
-    textAlign: 'center',
-    fontSize: responsiveStyles.fontSizes.xxlHeader,
-  },
-  subtitle: {
-    textAlign: 'center',
-    opacity: 0.7,
-    fontSize: responsiveStyles.fontSizes.body,
-  },
-  form: {
-    width: '100%',
-  },
-  input: {
-    marginBottom: verticalScale(16),
-    fontSize: responsiveStyles.fontSizes.body,
-  },
-  inputTablet: {
-    marginBottom: verticalScale(20),
-    fontSize: responsiveStyles.fontSizes.subheader,
-  },
-  button: {
-    marginTop: verticalScale(8),
-    marginBottom: verticalScale(16),
-    borderRadius: scale(8),
-    height: verticalScale(48),
-  },
-  buttonTablet: {
-    height: verticalScale(56),
-  },
-  buttonContent: {
-    height: '100%',
-  },
-  buttonLabel: {
-    fontSize: responsiveStyles.fontSizes.subheader,
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: verticalScale(16),
-    flexWrap: 'wrap',
-  },
-  footerText: {
-    opacity: 0.7,
-    fontSize: responsiveStyles.fontSizes.body,
-  },
-  linkButton: {
-    marginLeft: scale(4),
-    fontSize: responsiveStyles.fontSizes.body,
-  },
-  error: {
-    marginBottom: verticalScale(16),
-    textAlign: 'center',
-    fontSize: responsiveStyles.fontSizes.caption,
-  },
+  top: { alignItems: 'center', marginBottom: verticalScale(12) },
+  logo: { width: 96, height: 96, borderRadius: 12, marginBottom: verticalScale(12) },
+  title: { fontWeight: '700', marginBottom: verticalScale(6) },
+  subtitle: { opacity: 0.8 },
+  banner: { marginTop: verticalScale(8), marginBottom: verticalScale(8) },
+  form: { marginTop: verticalScale(6) },
+  input: { marginBottom: verticalScale(14) },
+  inputTablet: { marginBottom: verticalScale(18), fontSize: 16 },
+  button: { marginTop: verticalScale(6), borderRadius: scale(8) },
+  buttonContent: { height: verticalScale(50), alignItems: 'center', justifyContent: 'center' },
+  buttonLabel: { fontSize: 16 },
+  footerRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: verticalScale(12) },
+  footerText: { marginRight: scale(6) },
 });
 
 export default Register;

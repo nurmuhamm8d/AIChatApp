@@ -1,42 +1,47 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
+import React, { useEffect, useState, useCallback } from 'react';
+import { View } from 'react-native';
+import * as SplashScreen from 'expo-splash-screen';
+import AppNavigator from './src/navigation';
+import { AuthProvider } from './src/contexts/AuthContext';
+import { ThemeProvider } from './src/theme/ThemeContext';
+import { initI18n } from './src/i18n';
 
-import React from 'react';
-import { SafeAreaView, StatusBar, StyleSheet, Text, View } from 'react-native';
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function App() {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        await initI18n();
+      } finally {
+        if (mounted) setReady(true);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const onLayoutRootView = useCallback(async () => {
+    if (ready) {
+      try {
+        await SplashScreen.hideAsync();
+      } catch {}
+    }
+  }, [ready]);
+
+  if (!ready) return null;
+
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Настраиваем тёмный цвет текста в строке состояния */}
-      <StatusBar barStyle="dark-content" />
-      <View style={styles.content}>
-        <Text style={styles.text}>Welcome to AIChatApp</Text>
-      </View>
-    </SafeAreaView>
+    <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
+      <ThemeProvider>
+        <AuthProvider>
+          <AppNavigator />
+        </AuthProvider>
+      </ThemeProvider>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  // контейнер SafeAreaView
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  // контейнер для содержимого по центру
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F5FCFF',
-  },
-  // стиль текста
-  text: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: '#000000',
-  },
-});

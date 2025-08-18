@@ -1,7 +1,7 @@
-// index.js — точка входа для Expo dev‑client
-import 'expo-dev-client';                     // подключаем dev‑клиент (строго первой строкой)
-import { registerRootComponent } from 'expo'; // регистрируем корневой компонент
+import 'expo-dev-client';                     
+import 'intl-pluralrules';                
+
+import { registerRootComponent } from 'expo'; 
 import App from './App';
 
-// Передаём App в Expo; никакой ручной AppRegistry.registerComponent не нужен
 registerRootComponent(App);

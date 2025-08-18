@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User } from '../services/auth';
-import { authService } from '../services/auth';
+import { authService, User } from '../services/auth';
 
 type AuthContextType = {
   user: User | null;
@@ -10,74 +9,48 @@ type AuthContextType = {
   signOut: () => Promise<void>;
 };
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const Ctx = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load user on initial render
   useEffect(() => {
-    const loadUser = async () => {
-      try {
-        setIsLoading(true);
-        const storedUser = await authService.getCurrentUser();
-        setUser(storedUser);
-      } catch (error) {
-        console.error('Failed to load user', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    // Subscribe to auth state changes
-    const unsubscribe = authService.onAuthStateChanged((user) => {
-      setUser(user);
+    let unsub = authService.onAuthStateChanged(u => {
+      setUser(u);
       setIsLoading(false);
     });
-
-    loadUser();
-    return () => unsubscribe();
+    authService.getCurrentUser().finally(() => setIsLoading(false));
+    return () => unsub();
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    try {
-      setIsLoading(true);
-      await authService.login(email, password);
-    } finally {
-      setIsLoading(false);
-    }
+    setIsLoading(true);
+    try { await authService.login(email, password); }
+    finally { setIsLoading(false); }
   };
 
   const signUp = async (name: string, email: string, password: string) => {
-    try {
-      setIsLoading(true);
-      await authService.register(name, email, password);
-    } finally {
-      setIsLoading(false);
-    }
+    setIsLoading(true);
+    try { await authService.register(name, email, password); }
+    finally { setIsLoading(false); }
   };
 
   const signOut = async () => {
-    try {
-      setIsLoading(true);
-      await authService.logout();
-    } finally {
-      setIsLoading(false);
-    }
+    setIsLoading(true);
+    try { await authService.logout(); }
+    finally { setIsLoading(false); }
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, signIn, signUp, signOut }}>
-      {!isLoading && children}
-    </AuthContext.Provider>
+    <Ctx.Provider value={{ user, isLoading, signIn, signUp, signOut }}>
+      {children}
+    </Ctx.Provider>
   );
 };
 
-export const useAuth = (): AuthContextType => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
+export const useAuth = () => {
+  const v = useContext(Ctx);
+  if (!v) throw new Error('useAuth must be used within AuthProvider');
+  return v;
 };

@@ -1,110 +1,76 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import type { SupportedLanguage } from '../i18n';
 
-// User data storage
-const USER_KEY = '@user_data';
-const SETTINGS_KEY = '@user_settings';
-const MESSAGES_KEY = '@chat_messages';
+const USERS_KEY = '@users';
+const SESSION_EMAIL_KEY = '@session_email';
+const SETTINGS_KEY = '@app_settings';
+
+export type AppSettings = {
+  language?: SupportedLanguage;
+  theme?: 'light' | 'dark' | 'system';
+};
+
+export type StoredUser = {
+  id: string;
+  name: string;
+  email: string;
+  password: string; 
+  token: string;
+  createdAt: string;
+  lastLoginAt?: string;
+};
+
+async function read<T>(key: string): Promise<T | undefined> {
+  const j = await AsyncStorage.getItem(key);
+  return j ? (JSON.parse(j) as T) : undefined;
+}
+async function write<T>(key: string, value: T): Promise<void> {
+  await AsyncStorage.setItem(key, JSON.stringify(value));
+}
 
 export const StorageService = {
-  // User data
-  async saveUser(user: any) {
-    try {
-      await AsyncStorage.setItem(USER_KEY, JSON.stringify(user));
-      return true;
-    } catch (error) {
-      console.error('Error saving user:', error);
-      return false;
-    }
+  async getSettings(): Promise<AppSettings | undefined> {
+    return read<AppSettings>(SETTINGS_KEY);
+  },
+  async saveSettings(settings: AppSettings): Promise<void> {
+    return write<AppSettings>(SETTINGS_KEY, settings);
   },
 
-  async getUser() {
-    try {
-      const user = await AsyncStorage.getItem(USER_KEY);
-      return user ? JSON.parse(user) : null;
-    } catch (error) {
-      console.error('Error getting user:', error);
-      return null;
-    }
+  async getUsers(): Promise<StoredUser[]> {
+    return (await read<StoredUser[]>(USERS_KEY)) ?? [];
+  },
+  async addUser(user: StoredUser): Promise<void> {
+    const users = await StorageService.getUsers();
+    users.push(user);
+    await write(USERS_KEY, users);
+  },
+  async updateUser(user: StoredUser): Promise<void> {
+    const users = await StorageService.getUsers();
+    const idx = users.findIndex(u => u.email === user.email);
+    if (idx >= 0) users[idx] = user;
+    await write(USERS_KEY, users);
+  },
+  async findUserByEmail(email: string): Promise<StoredUser | undefined> {
+    const users = await StorageService.getUsers();
+    return users.find(u => u.email.toLowerCase() === email.toLowerCase());
   },
 
-  async removeUser() {
-    try {
-      await AsyncStorage.removeItem(USER_KEY);
-      return true;
-    } catch (error) {
-      console.error('Error removing user:', error);
-      return false;
-    }
+  async setSessionEmail(email: string): Promise<void> {
+    await AsyncStorage.setItem(SESSION_EMAIL_KEY, email);
+  },
+  async getSessionUser(): Promise<StoredUser | null> {
+    const email = await AsyncStorage.getItem(SESSION_EMAIL_KEY);
+    if (!email) return null;
+    const u = await StorageService.findUserByEmail(email);
+    return u ?? null;
+  },
+  async clearSession(): Promise<void> {
+    await AsyncStorage.removeItem(SESSION_EMAIL_KEY);
   },
 
-  // Settings
-  async saveSettings(settings: any) {
-    try {
-      await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-      return true;
-    } catch (error) {
-      console.error('Error saving settings:', error);
-      return false;
-    }
-  },
-
-  async getSettings() {
-    try {
-      const settings = await AsyncStorage.getItem(SETTINGS_KEY);
-      return settings ? JSON.parse(settings) : {
-        theme: 'system',
-        language: 'en',
-        notifications: true,
-      };
-    } catch (error) {
-      console.error('Error getting settings:', error);
-      return {
-        theme: 'system',
-        language: 'en',
-        notifications: true,
-      };
-    }
-  },
-
-  // Messages
-  async saveMessages(messages: any[]) {
-    try {
-      await AsyncStorage.setItem(MESSAGES_KEY, JSON.stringify(messages));
-      return true;
-    } catch (error) {
-      console.error('Error saving messages:', error);
-      return false;
-    }
-  },
-
-  async getMessages() {
-    try {
-      const messages = await AsyncStorage.getItem(MESSAGES_KEY);
-      return messages ? JSON.parse(messages) : [];
-    } catch (error) {
-      console.error('Error getting messages:', error);
-      return [];
-    }
-  },
-
-  async clearMessages() {
-    try {
-      await AsyncStorage.removeItem(MESSAGES_KEY);
-      return true;
-    } catch (error) {
-      console.error('Error clearing messages:', error);
-      return false;
-    }
-  },
-
-  // Clear all data (for logout)
-  async clearAll() {
-    try {
-      await AsyncStorage.multiRemove([USER_KEY, SETTINGS_KEY, MESSAGES_KEY]);
-      return true;
-    } catch (error) {
-      console.error('Error clearing all data:', error);
-      return false;
-    }
+  async clearAll(): Promise<void> {
+    await AsyncStorage.multiRemove([USERS_KEY, SESSION_EMAIL_KEY, SETTINGS_KEY]);
   },
 };
+
+export default StorageService;

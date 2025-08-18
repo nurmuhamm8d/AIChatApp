@@ -1,4 +1,3 @@
-# Node / Expo
 node_modules/
 .npm/
 .yarn/
@@ -13,12 +12,10 @@ yarn-error.log*
 
 google-services.json*
 
-# Env (не публикуем ключи)
 .env
 .env.*
 !.env.example
 
-# Android
 android/.gradle/
 android/.idea/
 android/local.properties
@@ -26,13 +23,11 @@ android/build/
 android/app/build/
 android/app/debug.keystore
 
-# iOS (если появится)
 ios/Pods/
 ios/build/
 *.xcworkspace
 *.xcodeproj/project.xcworkspace/
 *.xcuserdatad/
 
-# Metro / cache
 .cache/
 tmp/

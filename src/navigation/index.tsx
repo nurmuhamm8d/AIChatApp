@@ -1,178 +1,119 @@
 import React, { useContext, useEffect, useState } from 'react';
-import { View, ActivityIndicator, StatusBar } from 'react-native';
-import { NavigationContainer, DefaultTheme as NavDefaultTheme, DarkTheme as NavDarkTheme, Theme as NavTheme } from '@react-navigation/native';
+import {
+  NavigationContainer,
+  DefaultTheme as NavDefault,
+  DarkTheme as NavDark,
+  Theme as NavTheme,
+} from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { MD3DarkTheme as PaperDarkTheme, MD3LightTheme as PaperLightTheme, Provider as PaperProvider, IconButton } from 'react-native-paper';
+import {
+  MD3DarkTheme as PaperDark,
+  MD3LightTheme as PaperLight,
+  Provider as PaperProvider,
+  IconButton,
+  ActivityIndicator,
+} from 'react-native-paper';
+import { StatusBar, View } from 'react-native';
+
 import { ThemeContext } from '../theme/ThemeContext';
-import { lightTheme, darkTheme } from '../theme';
-import SplashScreen from '../components/SplashScreen';
 import { useAuth } from '../contexts/AuthContext';
-import { AuthStackParamList, MainTabParamList, RootStackParamList } from './types';
+import { initI18n } from '../i18n';
+import Login from '../screens/Auth/Login';
+import Register from '../screens/Auth/Register';
+import Chat from '../screens/Chat/Chat';
+import Profile from '../screens/Profile/Profile';
 
-// Lazy load screens
-const LoginScreen = React.lazy(() => import('../screens/Auth/Login.new'));
-const RegisterScreen = React.lazy(() => import('../screens/Auth/Register'));
-const ChatScreen = React.lazy(() => import('../screens/Chat/Chat'));
-const ProfileScreen = React.lazy(() => import('../screens/Profile/Profile'));
+export type RootStackParamList = { Auth: undefined; Main: undefined };
+export type AuthStackParamList = { Login: undefined; Register: undefined };
+export type MainTabParamList = { Chat: undefined; Profile: undefined };
 
-// Loading screen component
-const LoadingScreen = () => (
+const RootStack = createNativeStackNavigator<RootStackParamList>();
+const AuthStack = createNativeStackNavigator<AuthStackParamList>();
+const Tab = createBottomTabNavigator<MainTabParamList>();
+
+const CombinedLight: NavTheme = {
+  ...NavDefault,
+  dark: false,
+  colors: { ...NavDefault.colors, primary: PaperLight.colors.primary, background: PaperLight.colors.background, card: PaperLight.colors.surface, text: PaperLight.colors.onSurface, border: PaperLight.colors.outline, notification: PaperLight.colors.primary },
+};
+const CombinedDark: NavTheme = {
+  ...NavDark,
+  dark: true,
+  colors: { ...NavDark.colors, primary: PaperDark.colors.primary, background: PaperDark.colors.background, card: PaperDark.colors.surface, text: PaperDark.colors.onSurface, border: PaperDark.colors.outline, notification: PaperDark.colors.primary },
+};
+
+const Loading = () => (
   <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
     <ActivityIndicator size="large" />
   </View>
 );
 
-// Combine Paper and Navigation themes
-const CombinedLightTheme: NavTheme = {
-  ...NavDefaultTheme,
-  colors: {
-    ...NavDefaultTheme.colors,
-    primary: PaperLightTheme.colors.primary,
-    background: PaperLightTheme.colors.background,
-    card: PaperLightTheme.colors.surface,
-    text: PaperLightTheme.colors.onSurface,
-    border: PaperLightTheme.colors.outline,
-    notification: PaperLightTheme.colors.primary,
-  },
-  dark: false,
-};
-
-const CombinedDarkTheme: NavTheme = {
-  ...NavDarkTheme,
-  colors: {
-    ...NavDarkTheme.colors,
-    primary: PaperDarkTheme.colors.primary,
-    background: PaperDarkTheme.colors.background,
-    card: PaperDarkTheme.colors.surface,
-    text: PaperDarkTheme.colors.onSurface,
-    border: PaperDarkTheme.colors.outline,
-    notification: PaperDarkTheme.colors.primary,
-  },
-  dark: true,
-};
-
-// Create navigator instances
-const Stack = createNativeStackNavigator<RootStackParamList>();
-const AuthStack = createNativeStackNavigator<AuthStackParamList>();
-const Tab = createBottomTabNavigator<MainTabParamList>();
-
-// Auth Stack Navigator
 const AuthNavigator = () => (
-  <AuthStack.Navigator screenOptions={{
-    headerShown: false,
-    animationTypeForReplace: 'pop',
-  }}>
-    <AuthStack.Screen name="Login" component={LoginScreen} />
-    <AuthStack.Screen 
-      name="Register" 
-      component={RegisterScreen}
-      options={{
-        headerShown: true,
-        title: 'Create Account',
-        headerBackTitle: 'Back to Login',
-      }}
-    />
+  <AuthStack.Navigator>
+    <AuthStack.Screen name="Login" component={Login} options={{ headerShown: true, title: 'Login' }} />
+    <AuthStack.Screen name="Register" component={Register} options={{ headerShown: true, title: 'Create Account' }} />
   </AuthStack.Navigator>
 );
 
-// Main Tab Navigator
 const MainTabs = () => {
   const { signOut } = useAuth();
-  
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: true,
-        headerRight: () => (
-          <IconButton
-            icon="logout"
-            onPress={signOut}
-            style={{ marginRight: 8 }}
-          />
-        ),
+        headerRight: () => <IconButton icon="logout" onPress={signOut} style={{ marginRight: 8 }} />,
       }}
     >
-      <Tab.Screen 
-        name="Chat" 
-        component={ChatScreen}
-        options={{
-          title: 'AI Chat',
-          tabBarIcon: ({ color, size }) => (
-            <IconButton icon="chat" iconColor={color} size={size} />
-          ),
-        }}
+      <Tab.Screen
+        name="Chat"
+        component={Chat}
+        options={{ title: 'AI Chat', tabBarIcon: ({ color, size }) => <IconButton icon="chat" iconColor={color} size={size} /> }}
       />
-      <Tab.Screen 
-        name="Profile" 
-        component={ProfileScreen}
-        options={{
-          title: 'Profile',
-          tabBarIcon: ({ color, size }) => (
-            <IconButton icon="account" iconColor={color} size={size} />
-          ),
-        }}
+      <Tab.Screen
+        name="Profile"
+        component={Profile}
+        options={{ title: 'Profile', tabBarIcon: ({ color, size }) => <IconButton icon="account" iconColor={color} size={size} /> }}
       />
     </Tab.Navigator>
   );
 };
 
-// Root Stack Navigator
-const RootStack = createNativeStackNavigator<RootStackParamList>();
-
 const RootNavigator = () => {
   const { user, isLoading } = useAuth();
-
-  if (isLoading) {
-    return <LoadingScreen />;
-  }
-
+  if (isLoading) return <Loading />;
   return (
     <RootStack.Navigator screenOptions={{ headerShown: false }}>
-      {user ? (
-        <RootStack.Screen name="Main" component={MainTabs} />
-      ) : (
-        <RootStack.Screen name="Auth" component={AuthNavigator} />
-      )}
+      {user ? <RootStack.Screen name="Main" component={MainTabs} /> : <RootStack.Screen name="Auth" component={AuthNavigator} />}
     </RootStack.Navigator>
   );
 };
 
-export const AppNavigator = () => {
-  const { theme: appTheme } = useContext(ThemeContext);
-  const [appIsReady, setAppIsReady] = useState(false);
-  const isDark = appTheme === darkTheme;
-  const theme = isDark ? CombinedDarkTheme : CombinedLightTheme;
-  const paperTheme = isDark ? PaperDarkTheme : PaperLightTheme;
+export default function AppNavigator() {
+  const { mode } = useContext(ThemeContext);
+  const isDark = mode === 'dark';
+  const navTheme = isDark ? CombinedDark : CombinedLight;
+  const paperTheme = isDark ? PaperDark : PaperLight;
 
-  // Show splash screen on initial load
+  const [ready, setReady] = useState(false);
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setAppIsReady(true);
-    }, 2500);
-
-    return () => clearTimeout(timer);
+    initI18n().then(() => setReady(true));
   }, []);
 
-  if (!appIsReady) {
+  if (!ready) {
     return (
       <PaperProvider theme={paperTheme}>
-        <SplashScreen />
+        <Loading />
       </PaperProvider>
     );
   }
 
   return (
     <PaperProvider theme={paperTheme}>
-      <StatusBar
-        barStyle={isDark ? 'light-content' : 'dark-content'}
-        backgroundColor={theme.colors.background}
-      />
-      <NavigationContainer theme={theme}>
-        <React.Suspense fallback={<LoadingScreen />}>
-          <RootNavigator />
-        </React.Suspense>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+      <NavigationContainer theme={navTheme}>
+        <RootNavigator />
       </NavigationContainer>
     </PaperProvider>
   );
-};
+}
