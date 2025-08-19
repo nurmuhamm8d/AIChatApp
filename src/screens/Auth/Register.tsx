@@ -1,26 +1,13 @@
 import React, { useState, useCallback } from 'react';
-import {
-  View,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Image,
-  Keyboard,
-} from 'react-native';
+import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Image, Keyboard } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import {
-  Text,
-  TextInput,
-  Button,
-  Surface,
-  useTheme,
-} from 'react-native-paper';
+import { Text, TextInput, Button, Surface, useTheme } from 'react-native-paper';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { AuthStackParamList } from '../../navigation/types';
 import { useAuth } from '../../contexts/AuthContext';
 import { scale, verticalScale, isTablet } from '../../utils/responsive';
 import { useTranslation } from 'react-i18next';
+import { StorageService } from '../../services/storage';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'Register'>;
 
@@ -40,41 +27,47 @@ const Register: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   const [hint, setHint] = useState(t('allFieldsRequired', 'All fields are required'));
-  const [existsHint, setExistsHint] = useState(false);
-  const [errors, setErrors] = useState<{ name?: boolean; email?: boolean; password?: boolean; confirm?: boolean }>({});
 
   const handleRegister = useCallback(async () => {
     const tRequired = t('allFieldsRequired', 'All fields are required');
     const tShort = t('passwordTooShort', 'Password must be at least 6 characters');
     const tMismatch = t('passwordsDontMatch', 'Passwords do not match');
+    const tExists = t('userAlreadyRegistered', 'The user has already registered');
 
-    const next: typeof errors = {};
-    if (!name.trim()) next.name = true;
-    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!email.trim() || !re.test(email.trim())) next.email = true;
-    if (!password || password.length < 6) next.password = true;
-    if (!confirm || confirm !== password) next.confirm = true;
+    const okName = !!name.trim();
+    const okEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+    const okLen = password.length >= 6;
+    const okMatch = confirm === password;
 
-    if (Object.keys(next).length) {
-      setErrors(next);
-      setExistsHint(false);
+    if (!okName || !okEmail || !password || !confirm) {
       setHint(tRequired);
+      return;
+    }
+    if (!okLen) {
+      setHint(tShort);
+      return;
+    }
+    if (!okMatch) {
+      setHint(tMismatch);
+      return;
+    }
+
+    const existing = await StorageService.findUserByEmail(email.trim());
+    if (existing) {
+      setHint(tExists);
       return;
     }
 
     Keyboard.dismiss();
     setLoading(true);
-    setErrors({});
-    setExistsHint(false);
     try {
       await signUp(name.trim(), email.trim(), password);
     } catch {
-      setExistsHint(true);
-      setHint(t('userAlreadyExists', 'The user is already registered'));
+      setHint(tExists);
     } finally {
       setLoading(false);
     }
-  }, [name, email, password, confirm, t]);
+  }, [name, email, password, confirm, t, signUp]);
 
   return (
     <KeyboardAvoidingView
@@ -82,27 +75,15 @@ const Register: React.FC = () => {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? verticalScale(40) : 0}
     >
-      <ScrollView
-        contentContainerStyle={styles.scroll}
-        keyboardShouldPersistTaps="handled"
-      >
+      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <Surface style={[styles.card, { backgroundColor: theme.colors.surface }]}>
           <View style={styles.top}>
             <Image source={logo} style={styles.logo} resizeMode="contain" />
-            <Text
-              variant="headlineMedium"
-              style={[styles.title, { color: theme.colors.onSurface }]}
-            >
+            <Text variant="headlineMedium" style={[styles.title, { color: theme.colors.onSurface }]}>
               {t('register', 'Register')}
             </Text>
-            <Text
-              variant="bodyMedium"
-              style={[
-                styles.subtitle,
-                { color: Object.keys(errors).length ? theme.colors.error : theme.colors.onSurfaceVariant }
-              ]}
-            >
-              {existsHint ? t('userAlreadyExists', 'The user is already registered') : hint}
+            <Text variant="bodyMedium" style={[styles.subtitle, { color: theme.colors.error }]}>
+              {hint}
             </Text>
           </View>
 
@@ -111,58 +92,40 @@ const Register: React.FC = () => {
               mode="outlined"
               label={t('name', 'Name')}
               value={name}
-              onChangeText={(v) => { setName(v); if (errors.name) setErrors(p => ({ ...p, name: undefined })); }}
+              onChangeText={setName}
               left={<TextInput.Icon icon="account" />}
               style={[styles.input, isTablet() && styles.inputTablet]}
-              error={!!errors.name}
             />
-
             <TextInput
               mode="outlined"
               label={t('email', 'Email')}
               value={email}
-              onChangeText={(v) => { setEmail(v); if (errors.email) setErrors(p => ({ ...p, email: undefined })); setExistsHint(false); }}
+              onChangeText={setEmail}
               autoCapitalize="none"
               keyboardType="email-address"
               left={<TextInput.Icon icon="email" />}
               style={[styles.input, isTablet() && styles.inputTablet]}
-              error={!!errors.email}
             />
-
             <TextInput
               mode="outlined"
               label={t('password', 'Password')}
               value={password}
-              onChangeText={(v) => { setPassword(v); if (errors.password) setErrors(p => ({ ...p, password: undefined })); }}
+              onChangeText={setPassword}
               secureTextEntry={secure}
               left={<TextInput.Icon icon="lock" />}
-              right={
-                <TextInput.Icon
-                  icon={secure ? 'eye-off' : 'eye'}
-                  onPress={() => setSecure(s => !s)}
-                />
-              }
+              right={<TextInput.Icon icon={secure ? 'eye-off' : 'eye'} onPress={() => setSecure(s => !s)} />}
               style={[styles.input, isTablet() && styles.inputTablet]}
-              error={!!errors.password}
             />
-
             <TextInput
               mode="outlined"
               label={t('confirmPassword', 'Confirm Password')}
               value={confirm}
-              onChangeText={(v) => { setConfirm(v); if (errors.confirm) setErrors(p => ({ ...p, confirm: undefined })); }}
+              onChangeText={setConfirm}
               secureTextEntry={secure}
               left={<TextInput.Icon icon="lock-check" />}
-              right={
-                <TextInput.Icon
-                  icon={secure ? 'eye-off' : 'eye'}
-                  onPress={() => setSecure(s => !s)}
-                />
-              }
+              right={<TextInput.Icon icon={secure ? 'eye-off' : 'eye'} onPress={() => setSecure(s => !s)} />}
               style={[styles.input, isTablet() && styles.inputTablet]}
-              error={!!errors.confirm}
             />
-
             <Button
               mode="contained"
               onPress={handleRegister}
@@ -179,11 +142,7 @@ const Register: React.FC = () => {
               <Text style={[styles.footerText, { color: theme.colors.onSurfaceVariant }]}>
                 {t('alreadyHaveAccount', 'Already have an account?')}
               </Text>
-              <Button
-                compact
-                mode="text"
-                onPress={() => nav.navigate('Login')}
-              >
+              <Button compact mode="text" onPress={() => nav.navigate('Login')}>
                 {t('login', 'Login')}
               </Button>
             </View>
@@ -196,18 +155,11 @@ const Register: React.FC = () => {
 
 const styles = StyleSheet.create({
   scroll: { flexGrow: 1, justifyContent: 'center', padding: scale(16) },
-  card: {
-    width: '100%',
-    maxWidth: 600,
-    alignSelf: 'center',
-    padding: scale(20),
-    borderRadius: scale(12),
-    elevation: 2,
-  },
+  card: { width: '100%', maxWidth: 600, alignSelf: 'center', padding: scale(20), borderRadius: scale(12), elevation: 2 },
   top: { alignItems: 'center', marginBottom: verticalScale(12) },
   logo: { width: 96, height: 96, borderRadius: 12, marginBottom: verticalScale(12) },
   title: { fontWeight: '700', marginBottom: verticalScale(6) },
-  subtitle: { opacity: 0.8 },
+  subtitle: { opacity: 0.9 },
   form: { marginTop: verticalScale(6) },
   input: { marginBottom: verticalScale(14) },
   inputTablet: { marginBottom: verticalScale(18), fontSize: 16 },

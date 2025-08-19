@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { DrawerLayoutAndroid, FlatList, KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
-import { Button, Divider, IconButton, List, Surface, Text, TextInput, useTheme, Dialog, Portal } from 'react-native-paper';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { DrawerLayoutAndroid, FlatList, KeyboardAvoidingView, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Button, Divider, IconButton, List, Surface, Text, TextInput, useTheme } from 'react-native-paper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { i18n } from '../../i18n';
+import { useTranslation } from 'react-i18next';
+import { useFocusEffect } from '@react-navigation/native';
 import { verticalScale, scale, isTablet } from '../../utils/responsive';
 import { openAIService } from '../../services/openai';
 
@@ -14,8 +15,10 @@ const STORE_KEY = '@conv_v1';
 
 const Chat: React.FC = () => {
   const { colors } = useTheme();
+  const { t, i18n } = useTranslation();
   const drawerRef = useRef<DrawerLayoutAndroid>(null);
 
+  const [drawerKey, setDrawerKey] = useState(() => `${i18n.language}-${Date.now()}`);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
 
@@ -36,7 +39,7 @@ const Chat: React.FC = () => {
         } else {
           const first: Conversation = {
             id: `c_${Date.now()}`,
-            title: i18n.t('newChat', 'New Chat'),
+            title: t('newChat', 'New Chat'),
             messages: [],
             createdAt: Date.now(),
           };
@@ -45,18 +48,31 @@ const Chat: React.FC = () => {
         }
       } catch {}
     })();
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     AsyncStorage.setItem(STORE_KEY, JSON.stringify(conversations)).catch(() => {});
   }, [conversations]);
+
+  useEffect(() => {
+    drawerRef.current?.closeDrawer();
+    setDrawerKey(`${i18n.language}-${Date.now()}`);
+  }, [i18n.language]);
+
+  useFocusEffect(
+    useCallback(() => {
+      drawerRef.current?.closeDrawer();
+      setRenameOpen(false);
+      return () => {};
+    }, [])
+  );
 
   const active = useMemo(() => conversations.find(c => c.id === activeId) ?? null, [conversations, activeId]);
 
   const createConversation = () => {
     const c: Conversation = {
       id: `c_${Date.now()}`,
-      title: i18n.t('newChat', 'New Chat'),
+      title: t('newChat', 'New Chat'),
       messages: [],
       createdAt: Date.now(),
     };
@@ -90,8 +106,9 @@ const Chat: React.FC = () => {
   };
   const saveRename = () => {
     if (!active) return;
-    const t = renameText.trim() || i18n.t('newChat', 'New Chat');
-    setConversations(prev => prev.map(c => c.id === active.id ? { ...c, title: t } : c));
+    const tTitle = t('newChat', 'New Chat');
+    const title = (renameText.trim() || tTitle);
+    setConversations(prev => prev.map(c => c.id === active.id ? { ...c, title } : c));
     setRenameOpen(false);
   };
 
@@ -106,7 +123,7 @@ const Chat: React.FC = () => {
 
   const drawerContent = (
     <Surface style={[styles.drawer, { backgroundColor: colors.background }]}>
-      <Text variant="titleMedium" style={styles.drawerTitle}>{i18n.t('conversations', 'Conversations')}</Text>
+      <Text variant="titleMedium" style={styles.drawerTitle}>{t('conversations', 'Conversations')}</Text>
       <List.Section>
         {conversations.map(c => (
           <List.Item
@@ -124,7 +141,7 @@ const Chat: React.FC = () => {
         ))}
         <Divider />
         <List.Item
-          title={i18n.t('newConversation', 'New conversation')}
+          title={t('newConversation', 'New conversation')}
           onPress={() => {
             createConversation();
             drawerRef.current?.closeDrawer();
@@ -137,6 +154,7 @@ const Chat: React.FC = () => {
 
   return (
     <DrawerLayoutAndroid
+      key={drawerKey}
       ref={drawerRef}
       drawerWidth={Math.min(320, Math.round(Platform.OS === 'android' ? 0.85 * (isTablet() ? 700 : 360) : 320))}
       drawerPosition="left"
@@ -146,10 +164,10 @@ const Chat: React.FC = () => {
         <Surface style={styles.topBar} elevation={0}>
           <View style={styles.topRow}>
             <IconButton icon="menu" onPress={() => drawerRef.current?.openDrawer()} />
-            <Text variant="titleLarge" style={styles.chatTitle}>{active?.title ?? i18n.t('newChat', 'New Chat')}</Text>
+            <Text variant="titleLarge" style={styles.chatTitle}>{active?.title ?? t('newChat', 'New Chat')}</Text>
             <IconButton icon="pencil" onPress={openRename} />
             <IconButton icon="plus" onPress={createConversation} />
-            <Text style={styles.newConvText}>{i18n.t('newConversation', 'New conversation')}</Text>
+            <Text style={styles.newConvText}>{t('newConversation', 'New conversation')}</Text>
           </View>
         </Surface>
 
@@ -168,7 +186,7 @@ const Chat: React.FC = () => {
           <TextInput
             style={styles.input}
             mode="outlined"
-            placeholder={i18n.t('typeMessage', 'Message…')}
+            placeholder={t('typeMessage', 'Message…')}
             value={input}
             onChangeText={setInput}
             keyboardType="default"
@@ -180,22 +198,22 @@ const Chat: React.FC = () => {
             disabled={sending}
           />
           <Button mode="contained" onPress={ask} disabled={!input.trim() || sending} loading={sending} style={styles.sendBtn}>
-            {i18n.t('send', 'Send')}
+            {t('send', 'Send')}
           </Button>
         </View>
 
-        <Portal>
-          <Dialog visible={renameOpen} onDismiss={() => setRenameOpen(false)}>
-            <Dialog.Title>{i18n.t('renameChat', 'Rename chat')}</Dialog.Title>
-            <Dialog.Content>
+        {renameOpen && (
+          <Pressable style={styles.renameOverlay} onPress={() => setRenameOpen(false)}>
+            <Surface style={styles.renameCard}>
+              <Text variant="titleMedium" style={{ marginBottom: 8 }}>{t('renameChat', 'Rename chat')}</Text>
               <TextInput mode="outlined" value={renameText} onChangeText={setRenameText} />
-            </Dialog.Content>
-            <Dialog.Actions>
-              <Button onPress={() => setRenameOpen(false)}>{i18n.t('cancel', 'Cancel')}</Button>
-              <Button onPress={saveRename}>{i18n.t('save', 'Save')}</Button>
-            </Dialog.Actions>
-          </Dialog>
-        </Portal>
+              <View style={styles.renameActions}>
+                <Button onPress={() => setRenameOpen(false)}>{t('cancel', 'Cancel')}</Button>
+                <Button onPress={saveRename}>{t('save', 'Save')}</Button>
+              </View>
+            </Surface>
+          </Pressable>
+        )}
       </KeyboardAvoidingView>
     </DrawerLayoutAndroid>
   );
@@ -218,6 +236,9 @@ const styles = StyleSheet.create({
   sendBtn: { alignSelf: 'flex-end', height: 44, justifyContent: 'center' },
   drawer: { flex: 1, paddingTop: verticalScale(16) },
   drawerTitle: { alignSelf: 'center', marginBottom: verticalScale(8) },
+  renameOverlay: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', alignItems: 'center' },
+  renameCard: { width: '86%', borderRadius: 12, padding: 16 },
+  renameActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 12 },
 });
 
 export default Chat;

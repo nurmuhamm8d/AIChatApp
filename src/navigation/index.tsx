@@ -1,21 +1,9 @@
 import React, { useContext, useEffect, useState } from 'react';
-import {
-  NavigationContainer,
-  DefaultTheme as NavDefault,
-  DarkTheme as NavDark,
-  Theme as NavTheme,
-} from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme as NavDefault, DarkTheme as NavDark, Theme as NavTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import {
-  MD3DarkTheme as PaperDark,
-  MD3LightTheme as PaperLight,
-  Provider as PaperProvider,
-  IconButton,
-  ActivityIndicator,
-} from 'react-native-paper';
+import { MD3DarkTheme as PaperDark, MD3LightTheme as PaperLight, Provider as PaperProvider, IconButton, ActivityIndicator } from 'react-native-paper';
 import { StatusBar, View } from 'react-native';
-
 import { ThemeContext } from '../theme/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { initI18n } from '../i18n';
@@ -68,7 +56,11 @@ const MainTabs = () => {
       <Tab.Screen
         name="Chat"
         component={Chat}
-        options={{ title: 'AI Chat', tabBarIcon: ({ color, size }) => <IconButton icon="chat" iconColor={color} size={size} /> }}
+        options={{
+          title: 'AI Chat',
+          tabBarIcon: ({ color, size }) => <IconButton icon="chat" iconColor={color} size={size} />,
+          unmountOnBlur: true
+        }}
       />
       <Tab.Screen
         name="Profile"

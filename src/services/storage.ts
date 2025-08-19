@@ -14,7 +14,7 @@ export type StoredUser = {
   id: string;
   name: string;
   email: string;
-  password: string; 
+  password: string;
   token: string;
   createdAt: string;
   lastLoginAt?: string;
@@ -46,7 +46,7 @@ export const StorageService = {
   },
   async updateUser(user: StoredUser): Promise<void> {
     const users = await StorageService.getUsers();
-    const idx = users.findIndex(u => u.email === user.email);
+    const idx = users.findIndex(u => u.id === user.id);
     if (idx >= 0) users[idx] = user;
     await write(USERS_KEY, users);
   },

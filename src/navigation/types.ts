@@ -11,11 +11,12 @@ export type MainTabParamList = {
 };
 
 export type RootStackParamList = {
-  Auth: NavigatorScreenParams<AuthStackParamList>;
-  Main: NavigatorScreenParams<MainTabParamList>;
+  Auth: NavigatorScreenParams<AuthStackParamList> | undefined;
+  Main: NavigatorScreenParams<MainTabParamList> | undefined;
 };
 
-export type ChatStackParamList = { Chat: undefined; Settings: undefined };
-export type ProfileStackParamList = { Profile: undefined; Settings: undefined };
-
-export type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+export type ProfileStackParamList = {
+  ProfileHome: undefined;
+  EditProfile: undefined;
+  ChangePassword: undefined;
+};

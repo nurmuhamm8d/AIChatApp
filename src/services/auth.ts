@@ -64,7 +64,7 @@ class AuthService {
       id: `user_${Date.now()}`,
       name: name.trim(),
       email,
-      password, 
+      password,
       token: `token_${Math.random().toString(36).slice(2)}`,
       createdAt: now,
       lastLoginAt: now,
@@ -96,10 +96,22 @@ class AuthService {
     this.notify();
   }
 
-  async updateProfile(patch: { name?: string }): Promise<User> {
+  async updateProfile(patch: { name?: string; email?: string }): Promise<User> {
     const cur = await StorageService.getSessionUser();
     if (!cur) throw new Error('Not authenticated');
+
     if (patch.name !== undefined) cur.name = patch.name.trim();
+
+    if (patch.email !== undefined) {
+      const nextEmail = patch.email.toLowerCase().trim();
+      if (nextEmail !== cur.email) {
+        const exists = await StorageService.findUserByEmail(nextEmail);
+        if (exists && exists.id !== cur.id) throw new Error('Email already in use');
+        cur.email = nextEmail;
+        await StorageService.setSessionEmail(nextEmail);
+      }
+    }
+
     await StorageService.updateUser(cur);
     this.currentUser = toPublic(cur);
     this.notify();

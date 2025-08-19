@@ -4,7 +4,6 @@ import * as SplashScreen from 'expo-splash-screen';
 import AppNavigator from './src/navigation';
 import { AuthProvider } from './src/contexts/AuthContext';
 import { ThemeProvider } from './src/theme/ThemeContext';
-import { initI18n } from './src/i18n';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -12,17 +11,7 @@ export default function App() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        await initI18n();
-      } finally {
-        if (mounted) setReady(true);
-      }
-    })();
-    return () => {
-      mounted = false;
-    };
+    setReady(true);
   }, []);
 
   const onLayoutRootView = useCallback(async () => {

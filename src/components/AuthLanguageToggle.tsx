@@ -1,8 +1,7 @@
 import React from 'react';
 import { View, Pressable, Text, StyleSheet } from 'react-native';
-import { SupportedLanguage } from '../i18n';
 import { useTranslation } from 'react-i18next';
-import { changeLanguage } from '../i18n';
+import { changeLanguage, SupportedLanguage } from '../i18n';
 
 type Props = { style?: any };
 

@@ -1,17 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, Alert, Platform, PermissionsAndroid } from 'react-native';
-import {
-  Avatar,
-  Card,
-  Text,
-  Button,
-  Divider,
-  Switch,
-  RadioButton,
-  List,
-  IconButton,
-  useTheme,
-} from 'react-native-paper';
+import { Avatar, Card, Text, Button, Divider, Switch, RadioButton, List, IconButton, useTheme } from 'react-native-paper';
 import { launchImageLibrary, Asset, ImageLibraryOptions } from 'react-native-image-picker';
 import { useAuth } from '../../contexts/AuthContext';
 import { changeLanguage, supportedLanguages, SupportedLanguage } from '../../i18n';
@@ -20,17 +9,15 @@ import { useTranslation } from 'react-i18next';
 
 const Profile = () => {
   const { colors } = useTheme();
+  const { t, i18n } = useTranslation();
   const { user, signOut } = useAuth();
   const { themeType, toggleTheme } = useThemeContext();
-  const { t, i18n } = useTranslation();
 
   const [avatar, setAvatar] = useState<string | undefined>();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [themeExpanded, setThemeExpanded] = useState(false);
   const [languageExpanded, setLanguageExpanded] = useState(false);
-  const [currentLanguage, setCurrentLanguage] = useState<SupportedLanguage>(
-    (i18n.language as SupportedLanguage) || 'en'
-  );
+  const [currentLanguage, setCurrentLanguage] = useState<SupportedLanguage>((i18n.language as SupportedLanguage) || 'en');
 
   const themeOptions = [
     { label: t('system', 'System'), value: 'system' as const },
@@ -40,10 +27,9 @@ const Profile = () => {
 
   const askAndroidPermission = async () => {
     if (Platform.OS !== 'android') return true;
-    const perm =
-      Platform.Version >= 33
-        ? PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES
-        : PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE;
+    const perm = Platform.Version >= 33
+      ? PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES
+      : PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE;
     const res = await PermissionsAndroid.request(perm);
     return res === PermissionsAndroid.RESULTS.GRANTED;
   };
@@ -51,7 +37,7 @@ const Profile = () => {
   const pickAvatar = async () => {
     const ok = await askAndroidPermission();
     if (!ok) {
-      Alert.alert(t('permission', 'Permission'), t('storagePermission', 'Storage permission is required to pick an image.'));
+      Alert.alert('Permission', 'Storage permission is required to pick an image.');
       return;
     }
     const options: ImageLibraryOptions = { mediaType: 'photo', selectionLimit: 1, quality: 0.8 };
@@ -70,7 +56,7 @@ const Profile = () => {
   const onLogout = () => {
     Alert.alert(
       t('logout', 'Logout'),
-      t('areYouSureLogout', 'Are you sure you want to logout?'),
+      'Are you sure you want to logout?',
       [
         { text: t('cancel', 'Cancel'), style: 'cancel' },
         { text: t('logout', 'Logout'), style: 'destructive', onPress: () => void signOut() },
@@ -89,20 +75,12 @@ const Profile = () => {
           {avatar ? (
             <Avatar.Image size={100} source={{ uri: avatar }} style={styles.avatar} />
           ) : (
-            <Avatar.Text
-              size={100}
-              label={user?.name?.slice(0, 1)?.toUpperCase() || 'U'}
-              style={styles.avatar}
-            />
+            <Avatar.Text size={100} label={user?.name?.slice(0, 1)?.toUpperCase() || 'U'} style={styles.avatar} />
           )}
           <IconButton icon="camera" size={24} onPress={pickAvatar} style={styles.editAvatarButton} />
         </View>
-        <Text variant="headlineMedium" style={[styles.userName, { color: colors.onSurface }]}>
-          {user?.name ?? '—'}
-        </Text>
-        <Text variant="bodyMedium" style={[styles.userEmail, { color: colors.onSurfaceVariant }]}>
-          {user?.email ?? '—'}
-        </Text>
+        <Text variant="headlineMedium" style={[styles.userName, { color: colors.onSurface }]}>{user?.name ?? '—'}</Text>
+        <Text variant="bodyMedium" style={[styles.userEmail, { color: colors.onSurfaceVariant }]}>{user?.email ?? '—'}</Text>
       </View>
 
       <Card style={[styles.card, { backgroundColor: colors.surface }]}>
@@ -139,11 +117,9 @@ const Profile = () => {
             <List.Subheader>{t('notifications', 'Notifications')}</List.Subheader>
             <List.Item
               title={t('notifications', 'Notifications')}
-              description={t('enablePush', 'Enable push notifications')}
+              description="Enable push notifications"
               left={(p) => <List.Icon {...p} icon="bell" />}
-              right={() => (
-                <Switch value={notificationsEnabled} onValueChange={setNotificationsEnabled} />
-              )}
+              right={() => <Switch value={notificationsEnabled} onValueChange={setNotificationsEnabled} />}
             />
 
             <List.Accordion
@@ -152,17 +128,9 @@ const Profile = () => {
               expanded={themeExpanded}
               onPress={() => setThemeExpanded((v) => !v)}
             >
-              <RadioButton.Group
-                value={themeType}
-                onValueChange={(v) => toggleTheme(v as ThemeType)}
-              >
+              <RadioButton.Group value={themeType} onValueChange={(v) => toggleTheme(v as ThemeType)}>
                 {themeOptions.map((opt) => (
-                  <RadioButton.Item
-                    key={opt.value}
-                    value={opt.value}
-                    label={opt.label}
-                    position="leading"
-                  />
+                  <RadioButton.Item key={opt.value} value={opt.value} label={opt.label} position="leading" />
                 ))}
               </RadioButton.Group>
             </List.Accordion>
@@ -190,13 +158,7 @@ const Profile = () => {
       </Card>
 
       <View style={styles.footer}>
-        <Button
-          mode="contained"
-          onPress={onLogout}
-          style={styles.logoutButton}
-          labelStyle={styles.logoutButtonLabel}
-          contentStyle={{ height: 48 }}
-        >
+        <Button mode="contained" onPress={onLogout} style={styles.logoutButton} labelStyle={styles.logoutButtonLabel} contentStyle={{ height: 48 }}>
           {t('logout', 'Logout')}
         </Button>
         <Text style={[styles.versionText, { color: colors.onSurfaceVariant }]}>
