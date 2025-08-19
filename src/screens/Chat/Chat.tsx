@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { DrawerLayoutAndroid, FlatList, KeyboardAvoidingView, Platform, Pressable, StyleSheet, View } from 'react-native';
-import { Button, Divider, IconButton, List, Surface, Text, TextInput, useTheme } from 'react-native-paper';
+import { DrawerLayoutAndroid, FlatList, KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
+import { Button, Divider, IconButton, List, Surface, Text, TextInput, useTheme, Dialog, Portal } from 'react-native-paper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { i18n } from '../../i18n';
 import { verticalScale, scale, isTablet } from '../../utils/responsive';
@@ -43,7 +43,7 @@ const Chat: React.FC = () => {
           setConversations([first]);
           setActiveId(first.id);
         }
-      } catch { /* no-op */ }
+      } catch {}
     })();
   }, []);
 
@@ -184,18 +184,18 @@ const Chat: React.FC = () => {
           </Button>
         </View>
 
-        {renameOpen && (
-          <Pressable style={styles.renameOverlay} onPress={() => setRenameOpen(false)}>
-            <Surface style={styles.renameCard}>
-              <Text variant="titleMedium" style={{ marginBottom: 8 }}>{i18n.t('renameChat', 'Rename chat')}</Text>
+        <Portal>
+          <Dialog visible={renameOpen} onDismiss={() => setRenameOpen(false)}>
+            <Dialog.Title>{i18n.t('renameChat', 'Rename chat')}</Dialog.Title>
+            <Dialog.Content>
               <TextInput mode="outlined" value={renameText} onChangeText={setRenameText} />
-              <View style={styles.renameActions}>
-                <Button onPress={() => setRenameOpen(false)}>{i18n.t('cancel', 'Cancel')}</Button>
-                <Button onPress={saveRename}>{i18n.t('save', 'Save')}</Button>
-              </View>
-            </Surface>
-          </Pressable>
-        )}
+            </Dialog.Content>
+            <Dialog.Actions>
+              <Button onPress={() => setRenameOpen(false)}>{i18n.t('cancel', 'Cancel')}</Button>
+              <Button onPress={saveRename}>{i18n.t('save', 'Save')}</Button>
+            </Dialog.Actions>
+          </Dialog>
+        </Portal>
       </KeyboardAvoidingView>
     </DrawerLayoutAndroid>
   );
@@ -218,9 +218,6 @@ const styles = StyleSheet.create({
   sendBtn: { alignSelf: 'flex-end', height: 44, justifyContent: 'center' },
   drawer: { flex: 1, paddingTop: verticalScale(16) },
   drawerTitle: { alignSelf: 'center', marginBottom: verticalScale(8) },
-  renameOverlay: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', alignItems: 'center' },
-  renameCard: { width: '86%', borderRadius: 12, padding: 16 },
-  renameActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 12 },
 });
 
 export default Chat;

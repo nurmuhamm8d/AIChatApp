@@ -14,13 +14,15 @@ import {
 } from 'react-native-paper';
 import { launchImageLibrary, Asset, ImageLibraryOptions } from 'react-native-image-picker';
 import { useAuth } from '../../contexts/AuthContext';
-import { i18n, changeLanguage, supportedLanguages, SupportedLanguage } from '../../i18n';
+import { changeLanguage, supportedLanguages, SupportedLanguage } from '../../i18n';
 import { useThemeContext, ThemeType } from '../../theme/ThemeContext';
+import { useTranslation } from 'react-i18next';
 
 const Profile = () => {
   const { colors } = useTheme();
   const { user, signOut } = useAuth();
   const { themeType, toggleTheme } = useThemeContext();
+  const { t, i18n } = useTranslation();
 
   const [avatar, setAvatar] = useState<string | undefined>();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
@@ -31,9 +33,9 @@ const Profile = () => {
   );
 
   const themeOptions = [
-    { label: i18n.t('system', 'System'), value: 'system' as const },
-    { label: i18n.t('light', 'Light'), value: 'light' as const },
-    { label: i18n.t('dark', 'Dark'), value: 'dark' as const },
+    { label: t('system', 'System'), value: 'system' as const },
+    { label: t('light', 'Light'), value: 'light' as const },
+    { label: t('dark', 'Dark'), value: 'dark' as const },
   ];
 
   const askAndroidPermission = async () => {
@@ -49,7 +51,7 @@ const Profile = () => {
   const pickAvatar = async () => {
     const ok = await askAndroidPermission();
     if (!ok) {
-      Alert.alert('Permission', 'Storage permission is required to pick an image.');
+      Alert.alert(t('permission', 'Permission'), t('storagePermission', 'Storage permission is required to pick an image.'));
       return;
     }
     const options: ImageLibraryOptions = { mediaType: 'photo', selectionLimit: 1, quality: 0.8 };
@@ -61,17 +63,17 @@ const Profile = () => {
 
   const onChangeLanguage = async (code: string) => {
     const next = (code as SupportedLanguage) ?? 'en';
-    const changed = await changeLanguage(next); // boolean
+    const changed = await changeLanguage(next);
     if (changed) setCurrentLanguage(next);
   };
 
   const onLogout = () => {
     Alert.alert(
-      i18n.t('logout', 'Logout'),
-      'Are you sure you want to logout?',
+      t('logout', 'Logout'),
+      t('areYouSureLogout', 'Are you sure you want to logout?'),
       [
-        { text: i18n.t('cancel', 'Cancel'), style: 'cancel' },
-        { text: i18n.t('logout', 'Logout'), style: 'destructive', onPress: () => void signOut() },
+        { text: t('cancel', 'Cancel'), style: 'cancel' },
+        { text: t('logout', 'Logout'), style: 'destructive', onPress: () => void signOut() },
       ],
       { cancelable: true }
     );
@@ -106,11 +108,11 @@ const Profile = () => {
       <Card style={[styles.card, { backgroundColor: colors.surface }]}>
         <Card.Content>
           <Text variant="titleMedium" style={{ color: colors.primary, marginBottom: 8 }}>
-            {i18n.t('account', 'Account Settings')}
+            {t('account', 'Account Settings')}
           </Text>
 
           <List.Item
-            title={i18n.t('editProfile', 'Edit Profile')}
+            title={t('editProfile', 'Edit Profile')}
             left={(p) => <List.Icon {...p} icon="account-edit" />}
             right={(p) => <List.Icon {...p} icon="chevron-right" />}
             onPress={() => {}}
@@ -118,27 +120,26 @@ const Profile = () => {
           />
           <Divider />
           <List.Item
-            title={i18n.t('changePassword', 'Change Password')}
+            title={t('changePassword', 'Change Password')}
             left={(p) => <List.Icon {...p} icon="lock-reset" />}
             right={(p) => <List.Icon {...p} icon="chevron-right" />}
             onPress={() => {}}
             style={styles.listItem}
           />
-          {}
         </Card.Content>
       </Card>
 
       <Card style={[styles.card, { backgroundColor: colors.surface }]}>
         <Card.Content>
           <Text variant="titleMedium" style={{ color: colors.primary, marginBottom: 8 }}>
-            {i18n.t('settings', 'App Settings')}
+            {t('settings', 'App Settings')}
           </Text>
 
           <List.Section>
-            <List.Subheader>{i18n.t('notifications', 'Notifications')}</List.Subheader>
+            <List.Subheader>{t('notifications', 'Notifications')}</List.Subheader>
             <List.Item
-              title={i18n.t('notifications', 'Notifications')}
-              description="Enable push notifications"
+              title={t('notifications', 'Notifications')}
+              description={t('enablePush', 'Enable push notifications')}
               left={(p) => <List.Icon {...p} icon="bell" />}
               right={() => (
                 <Switch value={notificationsEnabled} onValueChange={setNotificationsEnabled} />
@@ -146,7 +147,7 @@ const Profile = () => {
             />
 
             <List.Accordion
-              title={i18n.t('darkMode', 'Theme')}
+              title={t('darkMode', 'Theme')}
               left={(p) => <List.Icon {...p} icon="theme-light-dark" />}
               expanded={themeExpanded}
               onPress={() => setThemeExpanded((v) => !v)}
@@ -167,7 +168,7 @@ const Profile = () => {
             </List.Accordion>
 
             <List.Accordion
-              title={i18n.t('language', 'Language')}
+              title={t('language', 'Language')}
               left={(p) => <List.Icon {...p} icon="translate" />}
               expanded={languageExpanded}
               onPress={() => setLanguageExpanded((v) => !v)}
@@ -196,10 +197,10 @@ const Profile = () => {
           labelStyle={styles.logoutButtonLabel}
           contentStyle={{ height: 48 }}
         >
-          {i18n.t('logout', 'Logout')}
+          {t('logout', 'Logout')}
         </Button>
         <Text style={[styles.versionText, { color: colors.onSurfaceVariant }]}>
-          {i18n.t('version', 'Version')} 1.0.0
+          {t('version', 'Version')} 1.0.0
         </Text>
       </View>
     </ScrollView>

@@ -1,10 +1,13 @@
 import React from 'react';
 import { View, Pressable, Text, StyleSheet } from 'react-native';
-import { changeLanguage, i18n, SupportedLanguage } from '../i18n';
+import { SupportedLanguage } from '../i18n';
+import { useTranslation } from 'react-i18next';
+import { changeLanguage } from '../i18n';
 
 type Props = { style?: any };
 
 export default function AuthLanguageToggle({ style }: Props) {
+  const { i18n } = useTranslation();
   const cur = (i18n.language as SupportedLanguage) || 'en';
   const set = async (lng: SupportedLanguage) => {
     if (lng !== cur) await changeLanguage(lng);
